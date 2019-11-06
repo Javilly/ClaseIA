@@ -9,6 +9,27 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Mm]emoryCaptures/
+/NavMesh/[Ll]ibrary/
+/NavMesh/[Tt]emp/
+/NavMesh/[Oo]bj/
+/NavMesh/[Bb]uild/
+/NavMesh/[Bb]uilds/
+/NavMesh/[Ll]ogs/
+/NavMesh/[Mm]emoryCaptures/
+/A Star/[Ll]ibrary/
+/A Star/[Tt]emp/
+/A Star/[Oo]bj/
+/A Star/[Bb]uild/
+/A Star/[Bb]uilds/
+/A Star/[Ll]ogs/
+/A Star/[Mm]emoryCaptures/
+/NeuralNetwork/[Ll]ibrary/
+/NeuralNetwork/[Tt]emp/
+/NeuralNetwork/[Oo]bj/
+/NeuralNetwork/[Bb]uild/
+/NeuralNetwork/[Bb]uilds/
+/NeuralNetwork/[Ll]ogs/
+/NeuralNetwork/[Mm]emoryCaptures/
 
 # Never ignore Asset meta data
 !/[Aa]ssets/**/*.meta
