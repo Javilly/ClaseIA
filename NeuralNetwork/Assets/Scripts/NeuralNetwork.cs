@@ -1,86 +1,79 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class NeuralNetwork
+public class NeuralNetwork : IComparable<NeuralNetwork>
 {
-    int[] neuronsPerLayer;
-    float[][] neurons;
-    float[][][] weights;
-    float[][][] previousWeights;
+    private int[] neuronsPerLayer;
+    private float[][] neurons;
+    private float[][][] weights;
+    private float[][][] previousWeights;
 
-    float fitness = 0;
+    private float fitness = 0;
 
-
-    public NeuralNetwork(int[] _neuronsPerLayer)
+    public NeuralNetwork(int[] _neuronAmount)
     {
-
-        neuronsPerLayer = new int[_neuronsPerLayer.Length];
-
-        for (int i = 0; i < _neuronsPerLayer.Length; i++)
+        this.neuronsPerLayer = new int[_neuronAmount.Length];
+        for (int i = 0; i < _neuronAmount.Length; i++)
         {
-            neuronsPerLayer[i] = _neuronsPerLayer[i];
+            this.neuronsPerLayer[i] = _neuronAmount[i];
         }
 
         InitializeNeurons();
         InitializeWeights();
     }
 
-    void InitializeNeurons()
+    public NeuralNetwork(NeuralNetwork _copyNetwork)
     {
-        neurons = new float[neuronsPerLayer.Length][];
+        this.neuronsPerLayer = new int[_copyNetwork.neuronsPerLayer.Length];
+        for (int i = 0; i < _copyNetwork.neuronsPerLayer.Length; i++)
+        {
+            this.neuronsPerLayer[i] = _copyNetwork.neuronsPerLayer[i];
+        }
+
+        InitializeNeurons();
+        InitializeWeights();
+        CopyWeights(_copyNetwork.weights);
+    }
+
+    private void InitializeNeurons()
+    {
+        List<float[]> neuronsList = new List<float[]>();
 
         for (int i = 0; i < neuronsPerLayer.Length; i++)
         {
-            neurons[i] = new float[neuronsPerLayer[i]];
+            neuronsList.Add(new float[neuronsPerLayer[i]]);
         }
+
+        neurons = neuronsList.ToArray();
     }
 
-    void InitializeWeights()
+    private void InitializeWeights()
     {
-        List<float[][]> dummyWeights = new List<float[][]>();
+        List<float[][]> weightsList = new List<float[][]>();
 
         for (int i = 1; i < neuronsPerLayer.Length; i++)
         {
-            List<float[]> currentLayerWeights = new List<float[]>();
-            //int neuronsInPreviousLayer = neuronsPerLayer[i - 1];
+            List<float[]> layerWeightsList = new List<float[]>();
+            int neuronsInPreviousLayer = neuronsPerLayer[i - 1];
 
             for (int j = 0; j < neurons[i].Length; j++)
             {
-                if (i < neuronsPerLayer.Length - 1)
+                float[] neuronWeights = new float[neuronsInPreviousLayer];
+                
+                for (int k = 0; k < neuronsInPreviousLayer; k++)
                 {
-                    if (j < neurons[i].Length - 1)
-                    {
-                        float[] weightsFound = new float[neuronsPerLayer[i - 1]];
-
-                        for (int k = 0; k < neurons[i - 1].Length; k++)
-                        {
-                            float initialWeight = UnityEngine.Random.Range(-0.5f, 0.5f);
-                            weightsFound[k] = initialWeight;
-                        }
-
-                        currentLayerWeights.Add(weightsFound);
-                    }
+                    neuronWeights[k] = UnityEngine.Random.Range(-0.5f, 0.5f);
                 }
-                else
-                {
-                    float[] weightsFound = new float[neuronsPerLayer[i - 1]];
 
-                    for (int k = 0; k < neurons[i - 1].Length; k++)
-                    {
-                        float initialWeight = UnityEngine.Random.Range(-0.5f, 0.5f);
-                        weightsFound[k] = initialWeight;
-                    }
-
-                    currentLayerWeights.Add(weightsFound);
-                }
+                layerWeightsList.Add(neuronWeights);
             }
 
-            dummyWeights.Add(currentLayerWeights.ToArray());
+            weightsList.Add(layerWeightsList.ToArray());
         }
 
-        weights = dummyWeights.ToArray();
+        weights = weightsList.ToArray();
     }
 
     private void CopyWeights()
@@ -109,45 +102,7 @@ public class NeuralNetwork
         previousWeights = weightsCopy.ToArray();
     }
 
-
-    //Feed() Primera instancia antes de la primera layer
-    //recibo un array de floats y devuelvo array de floats
-    //recorre primera layer de neuronas y uno a uno pone la info que rec bo por parametro
-    public float[] Feed(float[] input)
-    {
-        for (int i = 0; i < neurons[0].Length; i++)
-        {
-            neurons[0][i] = input[i];
-        }
-        ActivateNeuron();
-
-        return neurons[neuronsPerLayer.Length - 1];
-    }
-
-
-    //ActivateNeuron
-    //Iterar todos los pesos (empezar desde la segunda layer)
-    //J va a recorrer todas las neuronas de nuestra layer actual agarrando los datos de la layer anterior
-    //math.tanh
-    void ActivateNeuron()
-    {
-        float value = 0;
-
-        for (int i = 1; i < weights.Length; i++)
-        {
-            for (int j = 0; j < weights[i].Length; j++)
-            {
-                for (int k = 0; k < weights[i][j].Length; k++)
-                {
-                    value += weights[i][j][k];
-                }
-                neurons[i + 1][j] = (float)Math.Tanh(value);
-                value = 0;
-            }
-        }
-    }
-
-    public void Mutate()
+    private void CopyWeights(float[][][] copyWeights)
     {
         for (int i = 0; i < weights.Length; i++)
         {
@@ -155,23 +110,62 @@ public class NeuralNetwork
             {
                 for (int k = 0; k < weights[i][j].Length; k++)
                 {
+                    weights[i][j][k] = copyWeights[i][j][k];
+                }
+            }
+        }
+    }
+
+    public float[] FeedForward(float[] inputs)
+    {
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            neurons[0][i] = inputs[i];
+        }
+
+        for (int i = 1; i < neuronsPerLayer.Length; i++)
+        {
+            for (int j = 0; j < neurons[i].Length; j++)
+            {
+                float weightSum = 0f;
+
+                for (int k = 0; k < neurons[i - 1].Length; k++)
+                {
+                    weightSum += weights[i - 1][j][k] * neurons[i - 1][k];
+                }
+
+                neurons[i][j] = (float)Math.Tanh((double)weightSum);
+            }
+        }
+
+        return neurons[neurons.Length - 1];
+    }
+
+    public void Mutate()
+    {
+        for (int i = 0; i < weights.Length; i++)
+        {           
+            for (int j = 0; j < weights[i].Length; j++)
+            {
+                for (int k = 0; k < weights[i][j].Length; k++)
+                {
                     float currentWeight = weights[i][j][k];
                     float rmd = UnityEngine.Random.Range(0f, 100f);
 
-                    if (rmd <= 2)
+                    if (rmd <= 4)
                     {
                         currentWeight *= -1;
                     }
-                    else if (rmd <= 4)
+                    else if (rmd <= 8)
                     {
                         currentWeight = UnityEngine.Random.Range(-0.5f, 0.5f);
                     }
-                    else if (rmd <= 6)
+                    else if (rmd <= 12)
                     {
                         float increase = UnityEngine.Random.Range(0f, 1f) + 1f;
                         currentWeight *= increase;
                     }
-                    else if (rmd <= 8)
+                    else if (rmd <= 16)
                     {
                         float decrease = UnityEngine.Random.Range(0f, 1f);
                         currentWeight *= decrease;
@@ -196,5 +190,26 @@ public class NeuralNetwork
     public float GetFitness()
     {
         return fitness;
+    }
+
+    public int CompareTo(NeuralNetwork other)
+    {
+        if (other == null)
+        {
+            return 1;
+        }
+
+        if (fitness > other.fitness)
+        {
+            return 1;
+        }   
+        else if (fitness < other.fitness)
+        {
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }   
     }
 }
